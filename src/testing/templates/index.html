@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeightTrack - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+        }
+
+        .container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated Background */
+        .background {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+        }
+
+        .background-overlay {
+            position: absolute;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        .background-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            animation: zoom 20s ease-in-out infinite;
+        }
+
+        @keyframes zoom {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        /* Login Card */
+        .login-card {
+            width: 100%;
+            max-width: 28rem;
+            padding: 3rem 2rem;
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            position: relative;
+            z-index: 20;
+            margin: 1rem;
+        }
+
+        /* Logo */
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            height: 20rem;
+            width: auto;
+        }
+
+        /* Editable Text */
+        .text-section {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .edit-input {
+            width: 100%;
+            text-align: center;
+            color: #4b5563;
+            padding: 0.5rem 1rem;
+            border: 2px solid #60a5fa;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            font-family: inherit;
+            outline: none;
+        }
+
+        /* Button */
+        .button-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .login-button {
+            width: 100%;
+            background-color: white;
+            border: 2px solid #d1d5db;
+            color: #374151;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 1rem;
+            font-weight: 500;
+            font-family: inherit;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .login-button:hover {
+            background-color: #f9fafb;
+        }
+
+        /* Subtext */
+        .subtext {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .edit-input.small {
+            font-size: 0.875rem;
+        }
+
+        /* Instructions */
+        .instructions {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .instructions-text {
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Animated Background -->
+        <div class="background">
+            <div class="background-overlay"></div>
+            <img 
+                src="https://images.unsplash.com/photo-1666979290238-2d862b573345?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhbmltYXRlZCUyMHdvcmtvdXQlMjBleGVyY2lzZSUyMGZpdG5lc3N8ZW58MXx8fHwxNzcwNzgzNjIxfDA&ixlib=rb-4.1.0&q=80&w=1080"
+                alt="Workout background"
+                class="background-image"
+            >
+        </div>
+
+        <!-- Login Card -->
+        <div class="login-card">
+            <!-- Logo -->
+            <div class="logo-container">
+                <img src="/static/ProjectLogo.png" alt="WeightTrack Logo" class="logo" id="logo">
+            </div>
+
+            <!-- Promo message --> 
+             <div class="text-section"> 
+                <p>Sign in and find your needed calories to lose weight for free today! 
+                </p> 
+            </div>
+
+            <!-- Editable Header Text -->
+            <div class="text-section" id="headerSection">
+                <p id="headerText">Sign in to continue</p>
+            </div>
+
+            <!-- Editable Login Button -->
+            <div class="button-section" id="buttonSection">
+                <button class="login-button" id="loginButton" onclick="window.location.href='http://localhost:8000/login'">Login</button>
+            </div>
+
+            <!-- Editable Subtext -->
+            <div class="text-section" id="subtextSection">
+                <p id="subtextText">Click the button above to sign in</p>
+            </div>
+
+            <!-- Instructions -->
+            <div class="instructions">
+                <p class="instructions-text">Created by Chris Sexton</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
