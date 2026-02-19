@@ -14,8 +14,7 @@ from flask import Flask, redirect, request, url_for, render_template, make_respo
 import jwt
 import dotenv, os
 
-dotenv.load_dotenv()
-BACKEND_URL = os.getenv("BACKEND_URL")
+BACKEND_URL = "http://localhost:7001"
 app = Flask(__name__)
 
 # ---------------------
