@@ -11,10 +11,10 @@ app = Flask(__name__)
 DOMAIN = f'http://localhost:{RECEIVE_PORT}'
 DESTINATION = f'http://localhost:{SEND_PORT}'
 
-# AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
-# AUTH_URL = f"https://{AUTH0_DOMAIN}/authorize"
-# TOKEN_URL = f"https://{AUTH0_DOMAIN}/oauth/token"
-# USERINFO_URL = f"https://{AUTH0_DOMAIN}/userinfo"
+AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
+AUTH_URL = f"https://{AUTH0_DOMAIN}/authorize"
+TOKEN_URL = f"https://{AUTH0_DOMAIN}/oauth/token"
+USERINFO_URL = f"https://{AUTH0_DOMAIN}/userinfo"
 
 load_dotenv()
 
@@ -69,3 +69,4 @@ async def success():
 
 if __name__ == "__main__":
     app.run(port=RECEIVE_PORT, debug=True)
+
