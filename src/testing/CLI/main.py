@@ -1,12 +1,15 @@
 from flask import Flask, redirect, request, jsonify, make_response, g
+import requests
 from dotenv import load_dotenv
 from auth0_facilitator import auth0
 import os
 
 
-PORT = 5005
+RECEIVE_PORT = 5005
+SEND_PORT = 5006
 app = Flask(__name__)
-DOMAIN = f'http://localhost:{PORT}'
+DOMAIN = f'http://localhost:{RECEIVE_PORT}'
+DESTINATION = f'http://localhost:{SEND_PORT}'
 
 AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
 AUTH_URL = f"https://{AUTH0_DOMAIN}/authorize"
@@ -31,7 +34,6 @@ def auth():
     
 
 # Handle the auth0 stuff
-
 @app.before_request
 def store_request_response():
     """Make request/response available for Auth0 SDK"""
@@ -50,13 +52,21 @@ async def callback():
         result = await auth0.complete_interactive_login(str(request.url), g.store_options)
         return redirect(DOMAIN + '/success')
     except Exception as e:
-        return f"Authentication error: {str(e)}", 400
+        return f"Authentication error: {str(e)}. Try the link again.", 400
     
 @app.route('/success')
 async def success():
     """When login works, go here and print the user-id"""
     user = await auth0.get_user(g.store_options)
+
+    # Send request with body of user_id to 
+    result = requests.post(
+        DESTINATION + '/auth',
+        json={'user_id': f'{user['sub']}'}
+    )
+
     return f'Logged in successfully with user: {user['sub']}, return to the app.'
 
 if __name__ == "__main__":
-    app.run(port=PORT, debug=True)
+    app.run(port=RECEIVE_PORT, debug=True)
+
