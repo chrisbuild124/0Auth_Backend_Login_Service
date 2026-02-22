@@ -5,3 +5,4 @@ private.pem
 .vscode/
 __pycache__/
 private.pem
+.python-version
