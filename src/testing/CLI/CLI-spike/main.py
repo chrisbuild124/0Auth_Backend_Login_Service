@@ -10,8 +10,6 @@ from dataclasses import dataclass
 
 from time import sleep
 
-import requests
-
 from textual.app import App, ComposeResult
 from textual.widgets import Header, Input, RichLog
 from textual.screen import Screen
@@ -19,8 +17,6 @@ from textual.reactive import reactive
 
 from auth_and_preferences import User, validate_credentials, VALID_USERS
 import preference_options
-
-BACKEND_URL = "http://127.0.0.1:7001"
 
 
 class AuthState:
@@ -79,8 +75,6 @@ class LoginScreen(BaseCLIScreen):
         self._log("Log in with your credentials to begin.")
         self._log("Submit with Enter.\n")
         self._switch_to_username_mode()
-        # printing the url to the log here
-        self._log(f"\n{BACKEND_URL}/login?app-type=CLI")
 
     # What user interacts with to enter their username
     def _switch_to_username_mode(self) -> None:
@@ -103,21 +97,6 @@ class LoginScreen(BaseCLIScreen):
         app = self.get_app()
         inp = event.input # What the user inputted
         raw = inp.value.strip()
-
-        # If input is a valid token, proceed and save user info
-        headers = {"Authorization": raw}
-        resp = requests.get(f"{BACKEND_URL}/verify-user", headers=headers)
-        if not resp.json().get("success"):
-            self._log("User verification failed.")
-            self.clear_input()
-            return
-
-        user_info = resp.json().get("user_info")
-        app.auth.user = User(username=user_info["email"])
-        app.auth.username = app.auth.user.username
-        app.pop_screen()
-        app.push_screen(HomeScreen())
-        return
 
         if self.step == "username":
             if not raw: # If there's no input, do nothing
