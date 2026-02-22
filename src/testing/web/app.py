@@ -12,6 +12,7 @@ Way 2: Not used on this app. Uses JWT_SHARED_SECRET to verify user. Should only 
 
 from flask import Flask, redirect, request, url_for, render_template, make_response
 import jwt
+import requests
 
 BACKEND_URL = 'http://localhost:7001/'
 app = Flask(__name__)
@@ -26,7 +27,7 @@ def welcome():
 @app.route("/login")
 def login():
     # Http 302 code response and URL
-    return redirect(f"{BACKEND_URL}/login?app=Flask")
+    return redirect(f"{BACKEND_URL}/login?app-type=Flask")
     
 @app.route("/calorie-counter/home")
 def calorie_counter_home():
@@ -39,19 +40,15 @@ def calorie_counter_home():
         print("Cookie not found")
         return redirect(url_for("login"))
 
-    with open("public.pem", "rb") as f:
-        # Raw bites used in crypto encoding
-        public_key = f.read()
-    try:
-        user_info = jwt.decode(token, public_key, algorithms=["RS256"]) # "R" for decoding private/public
-    except jwt.ExpiredSignatureError:
-        print("JWT expired")
-        return redirect(url_for("login"))
-    except jwt.InvalidTokenError:
-        print("Invalid JWT.")
-        return redirect(url_for("login"))
+    # TODO Send request to backend/verify-user and decide to redirect based on the response.
+    # user_info can be in the response if it's successful.
+    headers = {"Authorization": token}
+    resp = requests.get(f"{BACKEND_URL}/verify-user", headers=headers)
+    if not resp.json().get("success"):
+        print("User verification failed.")
+        return redirect(url_for("logout"))
 
-    return render_template("calorie-counter/home.html", user=user_info)
+    return render_template("calorie-counter/home.html", user=resp.json().get("user_info"))
 
 @app.route("/logout")
 def logout():
