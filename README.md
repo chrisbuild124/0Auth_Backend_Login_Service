@@ -1,6 +1,6 @@
 # CS 361 Team 16 - Microservice 3 (Small Pool) & 4-5 (Large Pool)
 
-### Overview
+### Description
 - Three microservices in repository:
     - Backend VerifyJWT *(in pogress - large pool)*
         - Verifies Authenticity - Verify JWT tokens
@@ -9,7 +9,16 @@
     - Backend Auth0 (Small Pool)
         - Proves Identity - authenticate user to database
         - Creates Authenticity - Create JWT tokens
-        - Verifies Authenticity - Verify JWT tokens *(for now)*
+        - Verifies Authenticity & Identity *(for now)*
+            - Verify JWT - proves authenticity (granular would be roles as well)
+            - id inside JWT proves identity
+
+### Group Communication Contract
+- Discord is where we will communicate.
+- We are expected to respond to messages within 24 hours.
+- A backup plan for microservices will go into effect if a team member has become unresponsive for over 72 hours.
+- We won’t dismiss/mock anybody’s questions.
+- We will be patient with one another.
 
 # NOTES
 ### Backend VerifyJWT Microservice - Large Pool
@@ -17,19 +26,57 @@
 ### Backend Auth0 Microservice - Small Pool
 
 How to request data from the microservice:
-- d
+- Applications *Note:* BACKEND_URL = `http://localhost:7001/`:
+    - Web
+        - To request a specific URL to login into the Web Auth0 client, render/go to `{BACKEND_URL}/login?app-type=Flask` in the browser
+        - To verify JWT, send cookie named `jwt_calorie_counter_profile` inside GET request with the JWT and go to `{BACKEND_URL}/verify-user`
+            - Check if `success` is True, otherwise it was not successful
+    - CLI
+        - To request a specific URL to login into the Web Auth0 client, click to `{BACKEND_URL}/login?app-type=CLI` in the CLI
+        - To verify JWT, send raw JWT inside header in GET request with the JWT and send GET request to `{BACKEND_URL}/verify-user`
+            - Check if `success` is True, otherwise it was not successful
 
 Example call for requesting data:
-- d
+- Applications *Note:* BACKEND_URL = `http://localhost:7001/`:
+    - Web
+        - `return redirect(f"{BACKEND_URL}/login?app-type=Flask")`
+        - `resp = requests.get(f"{BACKEND_URL}/verify-user", headers=headers)`
+            - First do:
+                - `token = request.cookies.get("jwt_calorie_counter_profile")`
+                - `headers = {"Authorization": token}`
+    - CLI
+        - Click from CLI `{BACKEND_URL}/login?app-type=Flask`
+        - `resp = requests.get(f"{BACKEND_URL}/verify-user", headers=headers)`
+            - First do:
+                - `app = self.get_app()`
+                - `inp = event.input # What the user inputted`
+                - `raw = inp.value.strip()`
+                - `headers = {"Authorization": raw}`
 
 How to receive data from the microservice:
-- d
+- Applications
+    - Web
+        - Data is returned via HTTP route to the microservice endpoint at frontend URL `/calorie-counter/home`
+            - Extract cookie to get JSON data inside `request.cookies.get("jwt_calorie_counter_profile)`
+        - Data is returned via GET request, extract JSON data inside `.json`
+    - CLI
+        - Collect JWT key in browser via http page
+        - Data is returned via GET request, extract JSON data inside `.json`
 
 Example call for receiving data:
-- d
+- Applications
+    - Web
+        - At route `/calorie-counter/home`, do `token = request.cookies.get("jwt_calorie_counter_profile")`
+        - At route `/calorie-counter/home`, do:
+            - `resp = requests.get(f"{BACKEND_URL}/verify-user", headers=headers)`
+            - `user_info = resp.json().get("user_info")`
+    - CLI
+        - ![alt text](image.png)
+        - After requesting `headers = {"Authorization": raw}` and `resp = requests.get(f"{BACKEND_URL}/verify-user", headers=headers)`:
+            Extract: `user_info = resp.json().get("user_info")`
 
 UML sequence diagram:
-- d
+![alt text](image-1.png)
 
 UML Diagram Description:
 
@@ -77,6 +124,9 @@ UML Diagram Description:
     - Save over old cookie jwt as a new cookie, with it expiring immediately (Web)
     - Remove saved JWT (CLI)
     - Directs user to login page (CLI & Web)
+
+In depth Diagram for Microservice:
+![alt text](image-2.png)
 
 # Additional Notes
 - Additional cookie, JWT, and Flask documentation can be found on READme at [Calorie Tracker READme](https://github.com/chrisbuild124/Calorie-Tracker/blob/main/README.md)
