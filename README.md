@@ -71,12 +71,12 @@ Example call for receiving data:
             - `resp = requests.get(f"{BACKEND_URL}/verify-user", headers=headers)`
             - `user_info = resp.json().get("user_info")`
     - CLI
-        - ![alt text](image.png)
+        - ![alt text](docs/image.png)
         - After requesting `headers = {"Authorization": raw}` and `resp = requests.get(f"{BACKEND_URL}/verify-user", headers=headers)`:
             Extract: `user_info = resp.json().get("user_info")`
 
 UML sequence diagram:
-![alt text](image-1.png)
+![alt text](docs/image-1.png)
 
 UML Diagram Description:
 
@@ -126,7 +126,7 @@ UML Diagram Description:
     - Directs user to login page (CLI & Web)
 
 In depth Diagram for Microservice:
-![alt text](image-2.png)
+![alt text](docs/image-2.png)
 
 # Additional Notes
 - Additional cookie, JWT, and Flask documentation can be found on READme at [Calorie Tracker READme](https://github.com/chrisbuild124/Calorie-Tracker/blob/main/README.md)
