@@ -18,15 +18,21 @@
 
 How to request data from the microservice:
 - d
+
 Example call for requesting data:
 - d
+
 How to receive data from the microservice:
 - d
+
 Example call for receiving data:
 - d
+
 UML sequence diagram:
 - d
+
 UML Diagram Description:
+
 Frontend:
 - Type URL for homepage to login (Web)
     - Homepage is redirected to `/login` (Web)
