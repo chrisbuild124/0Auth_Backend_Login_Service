@@ -33,7 +33,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL")
 # -----------------------------
 @app.route("/")
 def home():
-    return "Auth Microservice Running"
+    return "Auth0 Microservice Running"
 
 @app.route("/login")
 def login():
@@ -92,6 +92,7 @@ def callback():
 def verify_user():
     """
     Verifies the user's JWT to authorize user on system
+    Only used by CLI application
     """
     token = request.headers.get("Authorization", None)
     if not token:
