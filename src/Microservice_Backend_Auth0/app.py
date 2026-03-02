@@ -21,6 +21,7 @@ AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
 AUTH_URL = f"https://{AUTH0_DOMAIN}/authorize"
 TOKEN_URL = f"https://{AUTH0_DOMAIN}/oauth/token"
 USERINFO_URL = f"https://{AUTH0_DOMAIN}/userinfo"
+REDIS_MICROSERVICE_DOMAIN = os.getenv("REDIS_MICROSERVICE_DOMAIN")
 CALLBACK_URL = os.getenv("CALLBACK_URL")
 CLIENT_ID = os.getenv("CLIENT_ID") 
 CLIENT_SECRET = os.getenv("CLIENT_SECRET") 
@@ -65,7 +66,7 @@ def callback():
     code = request.args.get("code", None)
     client_app = request.args.get("state", None)  # defined in login request parameters
     if not code:
-        return jsonify({"success": False, "error": "No code returned", "error status code": 400})
+        return jsonify({"success": False, "error": "No code returned"}), 400
 
     # Echange code for token
     token_object = exchange_code_for_token(code)
@@ -82,42 +83,48 @@ def callback():
     token = create_private_jwt(user_info, private_key)
     
     if client_app == "CLI":
+        res = send_redis_token(token)
+        if not res.json().get("success"):
+            return res
         return handle_jwt_CLI(token)
     elif client_app == "Flask":
+        res = send_redis_token(token)
+        if not res.json().get("success"):
+            return res
         return handle_jwt_flask(token)
     else:
-        return jsonify({"success": False, "error": "Unknown client app", "error status code": 400})
+        return jsonify({"success": False, "error": "Unknown client app"}), 400
 
-@app.route("/verify-user")
-def verify_user():
-    """
-    Verifies the user's JWT to authorize user on system
-    Only used by CLI application
-    """
-    token = request.headers.get("Authorization", None)
-    if not token:
-        return jsonify({"success": False, "error": "Authorization header missing", "error status code": 401})
+# @app.route("/verify-user")
+# def verify_user():
+#     """
+#     Verifies the user's JWT to authorize user on system
+#     Only used by CLI application
+#     """
+#     token = request.headers.get("Authorization", None)
+#     if not token:
+#         return jsonify({"success": False, "error": "Authorization header missing", "error status code": 401})
 
-    with open("public.pem", "rb") as f:
-        public_key = serialization.load_pem_public_key(f.read())
+#     with open("public.pem", "rb") as f:
+#         public_key = serialization.load_pem_public_key(f.read())
 
-    # decode JWT
-    try:
-        user_info = jwt.decode(token, public_key, algorithms=["RS256"])
-        print("User info success")
-    except jwt.ExpiredSignatureError:
-        print("Expired JWT")
-        return jsonify({"success": False, "error": "JWT expired", "error status code": 401})
-    except jwt.InvalidTokenError:
-        print("Invalid JWT")
-        return jsonify({"success": False, "error": "Invalid JWT", "error status code": 401})
+#     # decode JWT
+#     try:
+#         user_info = jwt.decode(token, public_key, algorithms=["RS256"])
+#         print("User info success")
+#     except jwt.ExpiredSignatureError:
+#         print("Expired JWT")
+#         return jsonify({"success": False, "error": "JWT expired", "error status code": 401})
+#     except jwt.InvalidTokenError:
+#         print("Invalid JWT")
+#         return jsonify({"success": False, "error": "Invalid JWT", "error status code": 401})
 
-    # returns successful message
-    return jsonify({
-        "success": True,
-        "message": f"Hello, {user_info.get('name')}! You are authenticated.",
-        "user_info": user_info
-    })
+#     # returns successful message
+#     return jsonify({
+#         "success": True,
+#         "message": f"Hello, {user_info.get('name')}! You are authenticated.",
+#         "user_info": user_info
+#     }), 200
 
 # -----------------------------
 # HELPERS
@@ -202,6 +209,17 @@ def create_private_jwt(user_info, private_key, expires_minutes=10):
     token = jwt.encode(payload, private_key, algorithm="RS256")
     return token
 
+def send_redis_token(token):
+    """
+    Receives token, sends Redis_Microservice the token to add to database
+    - Send GET request with token to the REDIS_MICROSERVCE_DOMAIN/create_session
+        - Request header should have an "Authorization": JWT str
+    - Response should be a success 200 if it worked, error 400 if it failed
+    """
+    headers = {"Authorization": token}
+    res = requests.get(REDIS_MICROSERVICE_DOMAIN + '/create_session', headers=headers)
+    return res
+    
 # Initialize application
 if __name__ == "__main__":
     app.run(port=PORT, debug=DEBUG_MODE)
