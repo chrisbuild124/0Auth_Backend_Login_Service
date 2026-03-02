@@ -21,9 +21,6 @@
 - We will be patient with one another.
 
 # NOTES
-### Backend VerifyJWT Microservice - Large Pool
-### Backend Redis Microservice - Large Pool
-### Backend Auth0 Microservice - Small Pool
 
 How to request data from the microservice:
 - Applications *Note:* BACKEND_URL = `http://localhost:7001/`:
