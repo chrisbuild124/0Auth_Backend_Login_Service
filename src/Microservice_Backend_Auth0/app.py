@@ -69,16 +69,14 @@ def callback():
     if not code:
         return jsonify({"success": False, "error": "No code returned"}), 400
 
-    # Echange code for token
     token_object = exchange_code_for_token(code)
     if not token_object["success"]:
         return token_object["error"]
-    # Exchange token for user info
+
     user_info = exchange_token_for_user_info(token_object["access_token"])
     if not user_info["success"]:
         return user_info["error"]
 
-    # Retrieve private key and make jwt
     with open("private.pem", "rb") as f:
         private_key = serialization.load_pem_private_key(f.read(), password=None)
     token = create_private_jwt(user_info, private_key)
@@ -114,7 +112,7 @@ def exchange_code_for_token(code):
         "scope": "openid profile email"
     }
     # Sends POST request with code for token 
-    headers = {"Content-Type": "application/x-www-form-urlencoded"} # String form
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
     res = requests.post(TOKEN_URL, data=data, headers=headers)
     if res.status_code not in (200, 201, 204):
         return {"success": False, "error": f"Token exchange failed, status code: {res.status_code}"}
@@ -144,7 +142,6 @@ def handle_jwt_CLI(token):
     """
     Render the JWT token to give to the front end CLI app
     """
-    # Render a simple HTML page with the token
     return f"""
     <html>
         <body>
@@ -175,7 +172,6 @@ def create_private_jwt(user_info, private_key, expires_minutes=10):
         "name": user_info.get("name", None),
         "exp": datetime.datetime.now(tz=timezone.utc) + datetime.timedelta(minutes=expires_minutes)
     }
-    # Change algorithm to RS256 and use private key
     token = jwt.encode(payload, private_key, algorithm="RS256")
     return token
 
