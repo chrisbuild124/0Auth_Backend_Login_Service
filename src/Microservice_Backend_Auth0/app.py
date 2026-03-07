@@ -11,6 +11,7 @@ import datetime
 # A backend microservice to authenticate users with Auth0 and
 # generate JWT tokens for frontend applications (CLI and Web)
 # -----------------------------
+
 PORT = 7001
 DEBUG_MODE = True
 
@@ -94,37 +95,6 @@ def callback():
         return handle_jwt_flask(token)
     else:
         return jsonify({"success": False, "error": "Unknown client app"}), 400
-
-# @app.route("/verify-user")
-# def verify_user():
-#     """
-#     Verifies the user's JWT to authorize user on system
-#     Only used by CLI application
-#     """
-#     token = request.headers.get("Authorization", None)
-#     if not token:
-#         return jsonify({"success": False, "error": "Authorization header missing", "error status code": 401})
-
-#     with open("public.pem", "rb") as f:
-#         public_key = serialization.load_pem_public_key(f.read())
-
-#     # decode JWT
-#     try:
-#         user_info = jwt.decode(token, public_key, algorithms=["RS256"])
-#         print("User info success")
-#     except jwt.ExpiredSignatureError:
-#         print("Expired JWT")
-#         return jsonify({"success": False, "error": "JWT expired", "error status code": 401})
-#     except jwt.InvalidTokenError:
-#         print("Invalid JWT")
-#         return jsonify({"success": False, "error": "Invalid JWT", "error status code": 401})
-
-#     # returns successful message
-#     return jsonify({
-#         "success": True,
-#         "message": f"Hello, {user_info.get('name')}! You are authenticated.",
-#         "user_info": user_info
-#     }), 200
 
 # -----------------------------
 # HELPERS
