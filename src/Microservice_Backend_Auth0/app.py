@@ -58,7 +58,7 @@ def callback():
     client_app = request.args.get("state", None)  # defined in login request parameters
     if not code:
         return jsonify({"success": False, "error": "No code returned"}), 400
-
+    
     token_object = exchange_code_for_token(code)
     if not token_object["success"]:
         return token_object["error"]
@@ -67,22 +67,8 @@ def callback():
     if not user_info["success"]:
         return user_info["error"]
 
-    with open("private.pem", "rb") as f:
-        private_key = serialization.load_pem_private_key(f.read(), password=None)
-    token = create_private_jwt(user_info, private_key)
-    
-    if client_app == "CLI":
-        res = send_redis_token(token)
-        if not res.json().get("success"):
-            return res
-        return handle_jwt_CLI(token)
-    elif client_app == "Flask":
-        res = send_redis_token(token)
-        if not res.json().get("success"):
-            return res
-        return handle_jwt_flask(token)
-    else:
-        return jsonify({"success": False, "error": "Unknown client app"}), 400
+    private_jwt = create_private_jwt(user_info)
+    return handle_redis_based_on_app(client_app, private_jwt)
 
 # -----------------------------
 # HELPERS
@@ -158,6 +144,25 @@ def exchange_token_for_user_info(access_token):
     response["success"] = True
     return response
 
+def handle_redis_based_on_app(client_app, jw_token):      
+    """
+    Depending on the client app, sends the JWT token to Redis microservice and then renders the appropriate response for the client
+     - For CLI: Render JWT token in a webpage for user to copy and paste into CLI
+     - For Flask: Set JWT token in cookie and redirect to frontend URL
+     - For unknown client app: Return error JSON
+    """
+    if client_app not in ("CLI", "Flask"):
+        return jsonify({"success": False, "error": "Unknown client app"}), 400
+    
+    res = send_redis_token(jw_token)
+    if not res.json().get("success"):
+        return res
+    
+    if client_app == "CLI":
+        return handle_jwt_CLI(jw_token)
+    elif client_app == "Flask":
+        return handle_jwt_flask(jw_token) 
+
 def handle_jwt_CLI(token):
     """
     Render the JWT token to give to the front end CLI app
@@ -178,14 +183,20 @@ def handle_jwt_flask(token):
     """
     response = make_response(redirect(FRONTEND_URL))
     response.set_cookie(
-        "jwt_calorie_counter_profile", token, httponly=True, secure=False  # secure=True in production (HTTPS)
+        "jwt_calorie_counter_profile", 
+        token, 
+        httponly=True, 
+        secure=False  # secure=True in production (HTTPS)
     )
     return response
 
-def create_private_jwt(user_info, private_key, expires_minutes=10):
+def create_private_jwt(user_info, expires_minutes=10):
     """
     Creates a signed JWT with user info using RS256 (private/public key)
     """
+    with open("private.pem", "rb") as f:
+        private_key = serialization.load_pem_private_key(f.read(), password=None)
+
     payload = {
         "sub": user_info["sub"],
         "email": user_info.get("email", None),
