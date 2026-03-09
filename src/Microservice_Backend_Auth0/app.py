@@ -11,6 +11,7 @@ import datetime
 # A backend microservice to authenticate users with Auth0 and
 # generate JWT tokens for frontend applications (CLI and Web)
 # -----------------------------
+
 PORT = 7001
 DEBUG_MODE = True
 
@@ -42,18 +43,8 @@ def login():
     Redirects to Auth0 URL page for that specific client type
     """
     client_app = request.args.get("app-type", "invalid_entry") # URL parameters
-
-    # Redirect user to Auth0 login page
-    params = {
-        "response_type": "code",
-        "client_id": CLIENT_ID,
-        "redirect_uri": CALLBACK_URL, # Must match the callback URL client
-        "scope": "openid profile email", # Tells what parameters we want back from Auth0
-        "state": client_app, # Sent directly back in callback
-        "prompt": "select_account"
-    }
-    auth_request = requests.Request("GET", AUTH_URL, params=params).prepare()
-    return redirect(auth_request.url)
+    auth_request = create_authentication_request_for_target_app(client_app)
+    return redirect(auth_request.url) # Redirect user to Auth0 login page
 
 @app.route("/callback")
 def callback():
@@ -67,73 +58,55 @@ def callback():
     client_app = request.args.get("state", None)  # defined in login request parameters
     if not code:
         return jsonify({"success": False, "error": "No code returned"}), 400
-
-    # Echange code for token
+    
     token_object = exchange_code_for_token(code)
     if not token_object["success"]:
         return token_object["error"]
-    # Exchange token for user info
+
     user_info = exchange_token_for_user_info(token_object["access_token"])
     if not user_info["success"]:
         return user_info["error"]
 
-    # Retrieve private key and make jwt
-    with open("private.pem", "rb") as f:
-        private_key = serialization.load_pem_private_key(f.read(), password=None)
-    token = create_private_jwt(user_info, private_key)
-    
-    if client_app == "CLI":
-        res = send_redis_token(token)
-        if not res.json().get("success"):
-            return res
-        return handle_jwt_CLI(token)
-    elif client_app == "Flask":
-        res = send_redis_token(token)
-        if not res.json().get("success"):
-            return res
-        return handle_jwt_flask(token)
-    else:
-        return jsonify({"success": False, "error": "Unknown client app"}), 400
-
-# @app.route("/verify-user")
-# def verify_user():
-#     """
-#     Verifies the user's JWT to authorize user on system
-#     Only used by CLI application
-#     """
-#     token = request.headers.get("Authorization", None)
-#     if not token:
-#         return jsonify({"success": False, "error": "Authorization header missing", "error status code": 401})
-
-#     with open("public.pem", "rb") as f:
-#         public_key = serialization.load_pem_public_key(f.read())
-
-#     # decode JWT
-#     try:
-#         user_info = jwt.decode(token, public_key, algorithms=["RS256"])
-#         print("User info success")
-#     except jwt.ExpiredSignatureError:
-#         print("Expired JWT")
-#         return jsonify({"success": False, "error": "JWT expired", "error status code": 401})
-#     except jwt.InvalidTokenError:
-#         print("Invalid JWT")
-#         return jsonify({"success": False, "error": "Invalid JWT", "error status code": 401})
-
-#     # returns successful message
-#     return jsonify({
-#         "success": True,
-#         "message": f"Hello, {user_info.get('name')}! You are authenticated.",
-#         "user_info": user_info
-#     }), 200
+    private_jwt = create_private_jwt(user_info)
+    return handle_redis_based_on_app(client_app, private_jwt)
 
 # -----------------------------
 # HELPERS
 # -----------------------------
 
+def create_authentication_request_for_target_app(client_app):
+    """
+    Sends request to Auth0 service to get the url for the user
+    """
+    params = {
+        "response_type": "code",
+        "client_id": CLIENT_ID,
+        "redirect_uri": CALLBACK_URL, # Must match the callback URL client
+        "scope": "openid profile email", # Tells what parameters we want back from Auth0
+        "state": client_app, # Sent directly back in callback
+        "prompt": "select_account"
+    }
+    auth_request = requests.Request("GET", AUTH_URL, params=params).prepare()
+    return auth_request
+
 def exchange_code_for_token(code):
     """
     Exchanges an authorization code for an access token
     Returns Python Dictionary
+    """
+    res = send_request_for_token_and_get_response(code)
+    if res.status_code not in (200, 201, 204):
+        return {"success": False, "error": f"Token exchange failed, status code: {res.status_code}"}
+    
+    access_token = get_access_token_from_response(res)
+    if not isinstance(access_token, str): # looks if the token isn't a string, which means it's an error json
+        return access_token
+
+    return {"success": True, "access_token": access_token}
+
+def send_request_for_token_and_get_response(code):
+    """
+    Returns response after POST with code to get the user token
     """
     data = {
         "grant_type": "authorization_code",
@@ -143,18 +116,19 @@ def exchange_code_for_token(code):
         "redirect_uri": CALLBACK_URL,
         "scope": "openid profile email"
     }
-    # Sends POST request with code for token 
-    headers = {"Content-Type": "application/x-www-form-urlencoded"} # String form
-    res = requests.post(TOKEN_URL, data=data, headers=headers)
-    if res.status_code not in (200, 201, 204):
-        return {"success": False, "error": f"Token exchange failed, status code: {res.status_code}"}
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    return requests.post(TOKEN_URL, data=data, headers=headers)
 
-    tokens = res.json()
+def get_access_token_from_response(response):
+    """
+    Takes response from code request for token and returns the token
+    If the token isn't in the response, returns error json
+    """
+    tokens = response.json()
     access_token = tokens.get("access_token", None)
     if not access_token:
         return {"success": False, "error": "Invalid token response from Auth0"}
-
-    return {"success": True, "access_token": access_token}
+    return access_token
 
 def exchange_token_for_user_info(access_token):
     """
@@ -170,11 +144,29 @@ def exchange_token_for_user_info(access_token):
     response["success"] = True
     return response
 
+def handle_redis_based_on_app(client_app, jw_token):      
+    """
+    Depending on the client app, sends the JWT token to Redis microservice and then renders the appropriate response for the client
+     - For CLI: Render JWT token in a webpage for user to copy and paste into CLI
+     - For Flask: Set JWT token in cookie and redirect to frontend URL
+     - For unknown client app: Return error JSON
+    """
+    if client_app not in ("CLI", "Flask"):
+        return jsonify({"success": False, "error": "Unknown client app"}), 400
+    
+    res = send_redis_token(jw_token)
+    if not res.json().get("success"):
+        return res
+    
+    if client_app == "CLI":
+        return handle_jwt_CLI(jw_token)
+    elif client_app == "Flask":
+        return handle_jwt_flask(jw_token) 
+
 def handle_jwt_CLI(token):
     """
     Render the JWT token to give to the front end CLI app
     """
-    # Render a simple HTML page with the token
     return f"""
     <html>
         <body>
@@ -191,21 +183,26 @@ def handle_jwt_flask(token):
     """
     response = make_response(redirect(FRONTEND_URL))
     response.set_cookie(
-        "jwt_calorie_counter_profile", token, httponly=True, secure=False  # secure=True in production (HTTPS)
+        "jwt_calorie_counter_profile", 
+        token, 
+        httponly=True, 
+        secure=False  # secure=True in production (HTTPS)
     )
     return response
 
-def create_private_jwt(user_info, private_key, expires_minutes=10):
+def create_private_jwt(user_info, expires_minutes=10):
     """
     Creates a signed JWT with user info using RS256 (private/public key)
     """
+    with open("private.pem", "rb") as f:
+        private_key = serialization.load_pem_private_key(f.read(), password=None)
+
     payload = {
         "sub": user_info["sub"],
         "email": user_info.get("email", None),
         "name": user_info.get("name", None),
         "exp": datetime.datetime.now(tz=timezone.utc) + datetime.timedelta(minutes=expires_minutes)
     }
-    # Change algorithm to RS256 and use private key
     token = jwt.encode(payload, private_key, algorithm="RS256")
     return token
 
